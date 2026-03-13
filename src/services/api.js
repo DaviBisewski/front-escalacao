@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000/players"
+const API_URL = "https://fut-draft-api.onrender.com/players"
 
 export async function getJogadores() {
   const res = await fetch(API_URL)
@@ -8,7 +8,7 @@ export async function getJogadores() {
 export async function getPlayerPhoto(name){
 
 const res = await fetch(
-`http://localhost:3000/player-photo?name=${encodeURIComponent(name)}`
+`https://fut-draft-api.onrender.com/player-photo?name=${encodeURIComponent(name)}`
 )
 
 return await res.json()
