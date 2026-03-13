@@ -1,31 +1,32 @@
 <script setup>
 import SlotJogador from "./SlotJogador.vue"
 
+// Mapeamento das 11 posições no campo com coordenadas em % (responsivas)
 const POSICOES = [
-  { id: "LW",  label: "LW",  top: "12%", left: "15%"    },
-  { id: "ST",  label: "ST",  top:  "9%", left: "50%"    },
-  { id: "RW",  label: "RW",  top: "12%", left: "85%"    },
-  { id: "CAM", label: "CAM", top: "30%", left: "50%"    },
-  { id: "CM1", label: "CM",  top: "38%", left: "27.5%"  },
-  { id: "CM2", label: "CM",  top: "38%", left: "72.5%"  },
-  { id: "LB",  label: "LB",  top: "57%", left: "12.5%"  },
-  { id: "CB1", label: "CB",  top: "63%", left: "35%"    },
-  { id: "CB2", label: "CB",  top: "63%", left: "65%"    },
-  { id: "RB",  label: "RB",  top: "57%", left: "87.5%"  },
-  { id: "GK",  label: "GK",  top: "91%", left: "50%"    },
+  { id: "LW",  label: "LW",  top: "12%", left: "15%"   },
+  { id: "ST",  label: "ST",  top:  "9%", left: "50%"   },
+  { id: "RW",  label: "RW",  top: "12%", left: "85%"   },
+  { id: "CAM", label: "CAM", top: "30%", left: "50%"   },
+  { id: "CM1", label: "CM",  top: "38%", left: "27.5%" },
+  { id: "CM2", label: "CM",  top: "38%", left: "72.5%" },
+  { id: "LB",  label: "LB",  top: "57%", left: "12.5%" },
+  { id: "CB1", label: "CB",  top: "63%", left: "35%"   },
+  { id: "CB2", label: "CB",  top: "63%", left: "65%"   },
+  { id: "RB",  label: "RB",  top: "57%", left: "87.5%" },
+  { id: "GK",  label: "GK",  top: "91%", left: "50%"   },
 ]
 
 const props = defineProps({
   time: { type: Object, default: () => ({}) }
 })
-
 const emit = defineEmits(["selecionar"])
 </script>
 
 <template>
   <div class="campo-container">
     <div class="campo">
-      <!-- Linhas do campo -->
+
+      <!-- Marcações do campo: linha do meio, círculo, áreas e gols -->
       <div class="linha-centro"></div>
       <div class="circulo-centro"></div>
       <div class="area-top"></div>
@@ -33,7 +34,7 @@ const emit = defineEmits(["selecionar"])
       <div class="gol-top"></div>
       <div class="gol-bottom"></div>
 
-      <!-- Posições -->
+      <!-- Posições: cada slot renderiza o jogador ou o placeholder -->
       <div
         v-for="pos in POSICOES"
         :key="pos.id"
@@ -43,6 +44,7 @@ const emit = defineEmits(["selecionar"])
       >
         <SlotJogador :label="pos.label" :jogador="time[pos.id]" />
       </div>
+
     </div>
   </div>
 </template>

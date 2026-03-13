@@ -6,22 +6,26 @@ import ModalJogadores from "./components/ModalJogadores.vue"
 import ListaLigas from "./components/ListaLigas.vue"
 import { getJogadores } from "./services/api"
 
-const jogadores = ref(null)
-const posicaoSelecionada = ref(null)
+// ─── Estado global da aplicação ──────────────────────────
+const jogadores = ref(null)        // todos os jogadores carregados da API
+const posicaoSelecionada = ref(null) // posição que está sendo preenchida
 const modalAberto = ref(false)
-const nomeEscalacao = ref("")
-const campoRef = ref(null)
-const compartilhando = ref(false)
+const nomeEscalacao = ref("")      // nome dado pelo usuário à escalação
+const campoRef = ref(null)         // ref do elemento capturado pelo html2canvas
+const compartilhando = ref(false)  // flag para estado de loading do export
 
+// ─── Escalação: 11 posições, inicialmente vazias ─────────
 const time = ref({
-  GK:null, LB:null, CB1:null, CB2:null, RB:null,
-  CM1:null, CM2:null, CAM:null, LW:null, ST:null, RW:null
+  GK: null, LB: null, CB1: null, CB2: null, RB: null,
+  CM1: null, CM2: null, CAM: null, LW: null, ST: null, RW: null,
 })
 
+// ─── Carrega jogadores ao montar o componente ─────────────
 onMounted(async () => {
   jogadores.value = await getJogadores()
 })
 
+// ─── Funções da escalação ─────────────────────────────────
 function abrirEscolha(pos) {
   posicaoSelecionada.value = pos
   modalAberto.value = true
@@ -33,30 +37,29 @@ function escolherJogador(player) {
 }
 
 function limparEscalacao() {
-  Object.keys(time.value).forEach(k => time.value[k] = null)
+  Object.keys(time.value).forEach(k => (time.value[k] = null))
 }
 
+// ─── Export PNG ───────────────────────────────────────────
+// Converte URL de imagem para base64 via proxy local para evitar CORS
 async function toBase64(src) {
-  // Tenta via proxy local (evita CORS do servidor de imagens externo)
   const proxySrc = `http://localhost:3000/image-proxy?url=${encodeURIComponent(src)}`
   for (const url of [proxySrc, src]) {
     try {
       const res = await fetch(url)
       if (!res.ok) continue
       const blob = await res.blob()
-      const b64 = await new Promise((resolve) => {
+      return await new Promise(resolve => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result)
         reader.readAsDataURL(blob)
       })
-      return b64
-    } catch {
-      continue
-    }
+    } catch { continue }
   }
   return null
 }
 
+// Captura o campo como PNG e faz download
 async function compartilhar() {
   if (!campoRef.value) return
   compartilhando.value = true
@@ -64,14 +67,13 @@ async function compartilhar() {
     const imgs = Array.from(campoRef.value.querySelectorAll("img"))
     const origSrcs = imgs.map(img => img.src)
 
-    // Converte para base64 apenas as que conseguir — não altera as que falharem
+    // substitui srcs por base64 antes de capturar
     await Promise.all(imgs.map(async (img, i) => {
       if (!origSrcs[i] || origSrcs[i].startsWith("data:")) return
       const b64 = await toBase64(origSrcs[i])
       if (b64) img.src = b64
     }))
 
-    // Aguarda um tick para o browser aplicar os novos srcs
     await new Promise(r => setTimeout(r, 100))
 
     const canvas = await html2canvas(campoRef.value, {
@@ -83,12 +85,11 @@ async function compartilhar() {
       imageTimeout: 0,
     })
 
-    // Restaura todos os srcs originais
+    // restaura os srcs originais após captura
     imgs.forEach((img, i) => { img.src = origSrcs[i] })
 
     const link = document.createElement("a")
-    const nome = nomeEscalacao.value.trim() || "minha-escalacao"
-    link.download = `${nome}.png`
+    link.download = `${nomeEscalacao.value.trim() || "minha-escalacao"}.png`
     link.href = canvas.toDataURL("image/png")
     link.click()
   } catch (e) {
@@ -100,10 +101,9 @@ async function compartilhar() {
 </script>
 
 <template>
-
 <div class="min-h-screen bg-zinc-950 text-white flex flex-col">
 
-  <!-- Header -->
+  <!-- Cabeçalho principal da página -->
   <header class="py-7 px-6 text-center border-b border-zinc-800">
     <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
       Monte sua Escalação com os Jogadores<br/>
@@ -112,30 +112,27 @@ async function compartilhar() {
     <p class="text-zinc-500 text-sm mt-2">Clique em uma posição no campo para escolher o jogador</p>
   </header>
 
-  <!-- Main: 3 colunas desktop / empilhado mobile -->
+  <!-- Layout principal: 3 colunas no desktop, empilhado no mobile -->
   <main class="flex-1 flex flex-col lg:flex-row lg:items-start gap-6 px-4 py-6 max-w-screen-xl mx-auto w-full">
 
-    <!-- Coluna esquerda: Ligas (mobile: aparece por último) -->
+    <!-- Coluna esquerda: lista das ligas disponíveis (aparece por último no mobile) -->
     <div class="order-3 lg:order-1 lg:w-52 lg:shrink-0 lg:sticky lg:top-6">
       <ListaLigas />
     </div>
 
-    <!-- Coluna centro: Campo (mobile: aparece primeiro) -->
+    <!-- Coluna central: campo de futebol (aparece primeiro no mobile) -->
     <div class="order-1 lg:order-2 flex-1 flex justify-center">
-      <!-- wrapper capturado pelo html2canvas -->
+      <!-- div capturada pelo html2canvas ao exportar PNG -->
       <div ref="campoRef" class="campo-capture">
         <p v-if="nomeEscalacao" class="capture-titulo">{{ nomeEscalacao }}</p>
-        <CampoFutebol
-          :time="time"
-          @selecionar="abrirEscolha"
-        />
+        <CampoFutebol :time="time" @selecionar="abrirEscolha" />
       </div>
     </div>
 
-    <!-- Coluna direita: Ações (mobile: aparece segundo) -->
+    <!-- Coluna direita: ações (aparece segundo no mobile) -->
     <div class="order-2 lg:order-3 lg:w-72 lg:shrink-0 lg:sticky lg:top-6 flex flex-col gap-10 w-full">
 
-      <!-- Botão limpar -->
+      <!-- Botão para limpar toda a escalação -->
       <button
         @click="limparEscalacao"
         class="flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-zinc-900 hover:bg-red-500/15 hover:text-red-400 border border-zinc-800 hover:border-red-500/40 font-semibold text-zinc-300 transition-colors w-full justify-center"
@@ -146,7 +143,7 @@ async function compartilhar() {
         Limpar escalação
       </button>
 
-      <!-- Nome + Compartilhar -->
+      <!-- Card: nomear e exportar a escalação como PNG -->
       <div class="w-full flex flex-col gap-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
         <div>
           <label class="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Nome da escalação</label>
@@ -184,19 +181,20 @@ async function compartilhar() {
 
   </main>
 
+  <!-- Modal de seleção de jogador (montado apenas quando aberto) -->
   <ModalJogadores
     v-if="modalAberto"
     :jogadores="jogadores"
     :posicao="posicaoSelecionada"
-    @fechar="modalAberto=false"
+    @fechar="modalAberto = false"
     @escolher="escolherJogador"
   />
 
 </div>
-
 </template>
 
 <style scoped>
+/* Wrapper capturado pelo html2canvas: inclui o nome e o campo */
 .campo-capture {
   display: flex;
   flex-direction: column;
@@ -206,6 +204,7 @@ async function compartilhar() {
   padding-top: 8px;
 }
 
+/* Título da escalação exibido acima do campo no PNG exportado */
 .capture-titulo {
   font-size: 18px;
   font-weight: 800;
